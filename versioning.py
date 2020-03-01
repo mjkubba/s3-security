@@ -3,11 +3,15 @@ from botocore.exceptions import ClientError
 
 
 def get_bucket_versioning(bucket_name, s3client):
+    """Get the bucket Versioning information."""
     try:
         versioning = s3client.get_bucket_versioning(Bucket=bucket_name)
-        print(versioning)
+        if "Status" in versioning:
+            return(versioning["versioning"])
+        else:
+            return("Disabled")
     except ClientError as error:
         if "AccessDenied" in str(error):
-            print("No access to bucket: " + bucket_name)
+            return("Access Denied")
         else:
-            print(str(error))
+            return("Access Error")

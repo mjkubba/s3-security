@@ -1,3 +1,4 @@
+
 import logging
 import sys
 import coloredlogs
@@ -65,19 +66,16 @@ def main():
         counter = 1
         slog.info("Found: %d Buckets", num_buckets)
         for bucket in bucket_list:
-            get_bucket_versioning(bucket, s3client)
-        #     name, ssl, vpc, message = get_bucket_policy(bucket)
-        #     slog.info(str(counter) + " of " + str(num_buckets) + " " +
-        #               name + "," + str(ssl) + "," + str(vpc) + "," + message)
-        #     f.write(name + "," + str(ssl) + "," + str(vpc) + "," +
-        #             message + "\n")
+            versioning = get_bucket_versioning(bucket, s3client)
+            print(versioning)
+            slog.info("%d of %d", counter, num_buckets)
+            results_file.write(bucket + "," + str(versioning) + "\n")
             counter = counter + 1
         #     if fix:
         #         if not ssl or not vpc:
         #             slog.info("Fixing " + name + " Policy")
         #             fix_policy(name, ssl, vpc, message)
-        #             f.write(name + "," + str(ssl) + "," + str(vpc) + "," +
-        #                     "Policy Fixed" + "\n")
+        #             results_file.write("%d of %d", counter, num_buckets)
         #         else:
         #             slog.info("Policy is good, nothing to fix")
     results_file.close()
