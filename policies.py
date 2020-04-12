@@ -1,6 +1,9 @@
 """DocString: Scan for buckets policies."""
+from botocore.exceptions import ClientError
+import json
 
-def get_existing_policy(bucket_name):
+
+def get_existing_policy(bucket_name, s3):
     """Get the Existing policy if found."""
     try:
         policy = s3.get_bucket_policy(Bucket=bucket_name)
@@ -14,41 +17,41 @@ def get_existing_policy(bucket_name):
             return(False, "Error Getting policy"+str(e))
 
 
-def get_bucket_policy(bucket_name):
+def get_bucket_policy(bucket_name, s3):
     """Get the bucket policy."""
-    check, policy = get_existing_policy(bucket_name)
+    check, policy = get_existing_policy(bucket_name, s3)
     if check:
-        ssl, vpc, message = check_if_valid(policy)
-        return(bucket_name, ssl, vpc, message)
+        ssl, message = check_if_valid(policy)
+        return(bucket_name, ssl, message)
     else:
-        return(bucket_name, False, False, policy)
+        return(bucket_name, False, policy)
 
 
 def check_if_valid(policy):
     """Check if a Policy is valid."""
-    check_vpc = False
+    # check_vpc = False
     check_ssl = False
-    vpc_msg = ""
+    # vpc_msg = ""
     ssl_msg = ""
     policy_json = json.loads(policy["Policy"])
     for statement in policy_json["Statement"]:
         condition = get_policy_condition(statement)
         if condition:
             ssl = check_if_ssl(condition)
-            vpc = check_if_vpc(condition)
+            # vpc = check_if_vpc(condition)
             if ssl:
                 check_ssl = True
                 ssl_msg = "SSL secured"
-            if vpc:
-                check_vpc = True
-                vpc_msg = "VPC secured"
+            # if vpc:
+            #     check_vpc = True
+            #     vpc_msg = "VPC secured"
         else:
             # print("Not Secured, No condition")
-            return(False, False, "Not Secured - No condition")
-    if check_vpc and check_ssl:
-        return(True, True, "All good")
+            return(False, "Not Secured - No condition")
+    if check_ssl:
+        return(True, "All good")
     else:
-        return(check_ssl, check_vpc, ssl_msg+" "+vpc_msg)
+        return(check_ssl, ssl_msg)
 
 
 def get_policy_condition(statement):
@@ -96,16 +99,16 @@ def check_if_vpc(condition):
         return(False)
 
 
-def get_vpc_list():
-    """Get list of VPCs."""
-    vpc_list = []
-    vpcs = ec2.describe_vpcs()
-    for vpc in vpcs["Vpcs"]:
-        vpc_list.append(vpc["VpcId"])
-    return(vpc_list)
+# def get_vpc_list(ec2):
+#     """Get list of VPCs."""
+#     vpc_list = []
+#     vpcs = ec2.describe_vpcs()
+#     for vpc in vpcs["Vpcs"]:
+#         vpc_list.append(vpc["VpcId"])
+#     return(vpc_list)
 
 
-def fix_policy(bucket_name, ssl, vpc, message):
+def set_bucket_policy(bucket_name, ssl, vpc, message):
     """Fix the policy by adding the required part(s)."""
     check, policy = get_existing_policy(bucket_name)
     if check:
@@ -114,10 +117,10 @@ def fix_policy(bucket_name, ssl, vpc, message):
             new_policy = add_ssl_statement(bucket_name, policy_json)
             update_policy(bucket_name, new_policy)
             return(True)
-        if not vpc:
-            new_policy = add_vpc_statement(bucket_name, policy_json)
-            update_policy(bucket_name, new_policy)
-            return(True)
+        # if not vpc:
+        #     new_policy = add_vpc_statement(bucket_name, policy_json)
+        #     update_policy(bucket_name, new_policy)
+        #     return(True)
     else:
         if policy == "No policy":
             new_policy = constuct_policy(bucket_name)
@@ -127,7 +130,7 @@ def fix_policy(bucket_name, ssl, vpc, message):
             return(False)
 
 
-def update_policy(bucket_name, new_policy):
+def update_policy(bucket_name, new_policy, s3):
     """Update the Policy in AWS."""
     try:
         s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(new_policy))
@@ -142,38 +145,38 @@ def constuct_policy(bucket):
         "Version": "2012-10-17",
         "Statement": []
     }
-    new_policy = add_vpc_statement(bucket, policy_head)
+    # new_policy = add_vpc_statement(bucket, policy_head)
     new_policy = add_ssl_statement(bucket, new_policy)
     return(new_policy)
 
 
-def add_vpc_statement(bucket, policy):
-    """Add VPC statement to policy."""
-    bucket_arn = "arn:aws:s3:::" + bucket
-    bucket_arn_obj = "arn:aws:s3:::" + bucket + "/*"
-    vpcs = get_vpc_list()
-    vpc_statement = {
-            "Sid": "VPCe and SourceIP",
-            "Effect": "Deny",
-            "Principal": "*",
-            "Action": [
-                "s3:DeleteObject",
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:ReplicateObject"
-            ],
-            "Resource": [
-                bucket_arn,
-                bucket_arn_obj
-            ],
-            "Condition": {
-                "StringNotLike": {
-                    "aws:sourceVpc": vpcs
-                }
-            }
-        }
-    policy["Statement"].append(vpc_statement)
-    return(policy)
+# def add_vpc_statement(bucket, policy):
+#     """Add VPC statement to policy."""
+#     bucket_arn = "arn:aws:s3:::" + bucket
+#     bucket_arn_obj = "arn:aws:s3:::" + bucket + "/*"
+#     vpcs = get_vpc_list()
+#     vpc_statement = {
+#             "Sid": "VPCe and SourceIP",
+#             "Effect": "Deny",
+#             "Principal": "*",
+#             "Action": [
+#                 "s3:DeleteObject",
+#                 "s3:GetObject",
+#                 "s3:PutObject",
+#                 "s3:ReplicateObject"
+#             ],
+#             "Resource": [
+#                 bucket_arn,
+#                 bucket_arn_obj
+#             ],
+#             "Condition": {
+#                 "StringNotLike": {
+#                     "aws:sourceVpc": vpcs
+#                 }
+#             }
+#         }
+#     policy["Statement"].append(vpc_statement)
+#     return(policy)
 
 
 def add_ssl_statement(bucket, policy):

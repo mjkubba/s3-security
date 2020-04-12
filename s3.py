@@ -5,6 +5,7 @@ import coloredlogs
 import boto3
 from versioning import get_bucket_versioning, set_bucket_versioning
 from encryption import get_bucket_encryption, set_bucket_encryption
+from policies import get_bucket_policy, set_bucket_policy
 
 
 def set_logger():
@@ -68,6 +69,16 @@ def encryption(bucket, s3client, logger, fix, results_file):
     return enc
 
 
+def policies(bucket, s3client, logger, fix, results_file):
+    """Check and Enable Encryption."""
+    pol = get_bucket_policy(bucket, s3client)
+    logger.info(bucket + " policy is " + pol[2])
+    if fix:
+        pol = set_bucket_policy(bucket, s3client, logger)
+        logger.info(bucket + " policy is now " + pol[2])
+    return pol[2]
+
+
 def main():
     """Main."""
     s3client = boto3.client('s3')
@@ -82,7 +93,8 @@ def main():
         if bucket in bucket_list:
             ver = versioning(bucket, s3resource, logger, fix, results_file)
             enc = encryption(bucket, s3client, logger, fix, results_file)
-            results_file.write(bucket + "," + ver + "," + enc + "\n")
+            pol = policies(bucket, s3client, logger, fix, results_file)
+            results_file.write(bucket + "," + ver + "," + enc + "," + pol + "\n")
         else:
             logger.error("Bucket Not Found: %s", bucket)
     else:
@@ -94,7 +106,7 @@ def main():
             enc = encryption(bucket, s3client, logger, fix, results_file)
             logger.info("%d of %d", counter, num_buckets)
             counter = counter + 1
-            results_file.write(bucket + "," + ver + "," + enc + "\n")
+            results_file.write(bucket + "," + ver + "," + enc + "," + pol + "\n")
     results_file.close()
 
 
