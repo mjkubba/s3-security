@@ -1,9 +1,9 @@
-
+"""DocString: Scan for buckets policies, versioning and encryption."""
 import logging
 import sys
 import coloredlogs
 import boto3
-from versioning import get_bucket_versioning
+from versioning import get_bucket_versioning, set_bucket_versioning
 
 
 def set_logger():
@@ -50,6 +50,7 @@ def list_all_buckets(s3client):
 def main():
     """Main."""
     s3client = boto3.client('s3')
+    s3resource = boto3.resource('s3')
     bucket, fix = check_input()
     results_file = open("s3results.csv", "w")
     results_file.write("Bucket Name,Versioning\n")
@@ -58,7 +59,13 @@ def main():
 
     if bucket:
         if bucket in bucket_list:
-            get_bucket_versioning(bucket, s3client)
+            versioning = get_bucket_versioning(bucket, s3resource, logger)
+            logger.info(bucket + " is " + versioning)
+            results_file.write(bucket + "," + str(versioning) + "\n")
+            if fix:
+                versioning = set_bucket_versioning(bucket, s3resource, logger)
+                logger.info(bucket + " is now " + versioning)
+
         else:
             logger.error("Bucket Not Found: %s", bucket)
     else:
@@ -66,18 +73,15 @@ def main():
         counter = 1
         logger.info("Found: %d Buckets", num_buckets)
         for bucket in bucket_list:
-            versioning = get_bucket_versioning(bucket, s3client, logger)
-            logger.info(versioning)
+            versioning = get_bucket_versioning(bucket, s3resource, logger)
+            logger.info(bucket + " is " + versioning)
             logger.info("%d of %d", counter, num_buckets)
             results_file.write(bucket + "," + str(versioning) + "\n")
             counter = counter + 1
-        #     if fix:
-        #         if not ssl or not vpc:
-        #             logger.info("Fixing " + name + " Policy")
-        #             fix_policy(name, ssl, vpc, message)
-        #             results_file.write("%d of %d", counter, num_buckets)
-        #         else:
-        #             logger.info("Policy is good, nothing to fix")
+            if fix:
+                versioning = set_bucket_versioning(bucket, s3resource, logger)
+                logger.info(bucket + " is now " + versioning)
+
     results_file.close()
 
 
