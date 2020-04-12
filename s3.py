@@ -49,21 +49,23 @@ def list_all_buckets(s3client):
 
 
 def versioning(bucket, s3resource, logger, fix, results_file):
+    """Check and enable versioning."""
     versioning = get_bucket_versioning(bucket, s3resource, logger)
     logger.info(bucket + " versioning is " + versioning)
-    # results_file.write(bucket + "," + str(versioning) + "\n")
     if fix:
         versioning = set_bucket_versioning(bucket, s3resource, logger)
         logger.info(bucket + " versioning is now " + versioning)
+    return versioning
 
 
 def encryption(bucket, s3client, logger, fix, results_file):
+    """Check and Enable Encryption."""
     enc = get_bucket_encryption(bucket, s3client, logger)
     logger.info(bucket + " encryption is " + enc)
-    # results_file.write(bucket + "," + str(enc) + "\n")
     if fix:
         enc = set_bucket_encryption(bucket, s3client, logger)
         logger.info(bucket + " encryption is now " + enc)
+    return enc
 
 
 def main():
@@ -78,8 +80,9 @@ def main():
 
     if bucket:
         if bucket in bucket_list:
-            versioning(bucket, s3resource, logger, fix, results_file)
-            encryption(bucket, s3client, logger, fix, results_file)
+            ver = versioning(bucket, s3resource, logger, fix, results_file)
+            enc = encryption(bucket, s3client, logger, fix, results_file)
+            results_file.write(bucket + "," + ver + "," + enc + "\n")
         else:
             logger.error("Bucket Not Found: %s", bucket)
     else:
@@ -87,11 +90,11 @@ def main():
         counter = 1
         logger.info("Found: %d Buckets", num_buckets)
         for bucket in bucket_list:
-            versioning(bucket, s3resource, logger, fix, results_file)
-            encryption(bucket, s3client, logger, fix, results_file)
+            ver = versioning(bucket, s3resource, logger, fix, results_file)
+            enc = encryption(bucket, s3client, logger, fix, results_file)
             logger.info("%d of %d", counter, num_buckets)
             counter = counter + 1
-
+            results_file.write(bucket + "," + ver + "," + enc + "\n")
     results_file.close()
 
 
