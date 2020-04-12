@@ -108,7 +108,7 @@ def check_if_vpc(condition):
 #     return(vpc_list)
 
 
-def set_bucket_policy(bucket_name, ssl, vpc, message):
+def set_bucket_policy(bucket_name, ssl, message):
     """Fix the policy by adding the required part(s)."""
     check, policy = get_existing_policy(bucket_name)
     if check:
