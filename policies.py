@@ -3,26 +3,26 @@ from botocore.exceptions import ClientError
 import json
 
 
-def get_existing_policy(bucket_name, s3):
+def get_bucket_policy(bucket_name, s3client):
+    """Get the bucket policy, Entry Function."""
+    check, policy = get_existing_policy(bucket_name, s3client)
+    if check:
+        ssl, message = check_if_valid(policy)
+        return(bucket_name, ssl, message)
+    else:
+        return(bucket_name, False, policy)
+
+
+def get_existing_policy(bucket_name, s3client):
     """Get the Existing policy if found."""
     try:
-        policy = s3.get_bucket_policy(Bucket=bucket_name)
+        policy = s3client.get_bucket_policy(Bucket=bucket_name)
         return(True, policy)
     except ClientError as e:
         if "NoSuchBucketPolicy" in str(e):
             return(False, "No policy")
         else:
             return(False, "Error Getting policy"+str(e))
-
-
-def get_bucket_policy(bucket_name, s3):
-    """Get the bucket policy."""
-    check, policy = get_existing_policy(bucket_name, s3)
-    if check:
-        ssl, message = check_if_valid(policy)
-        return(bucket_name, ssl, message)
-    else:
-        return(bucket_name, False, policy)
 
 
 def check_if_valid(policy):
@@ -39,10 +39,7 @@ def check_if_valid(policy):
                 ssl_msg = "SSL secured"
         else:
             return(False, "Not Secured - No condition")
-    if check_ssl:
-        return(True, "All good")
-    else:
-        return(check_ssl, ssl_msg)
+    return(check_ssl, ssl_msg)
 
 
 def get_policy_condition(statement):
@@ -67,40 +64,28 @@ def check_if_ssl(condition):
         return(False)
 
 
-def check_if_vpc(condition):
-    """Check if a condition(policy) have VPC-only source."""
-    if "StringNotLike" in condition:
-        if "aws:sourceVpc" in condition["StringNotLike"]:
-            return(True)
-        else:
-            return(False)
-    else:
-        return(False)
-
-
-def set_bucket_policy(bucket_name, s3):
+def set_bucket_policy(bucket_name, s3client):
     """Fix the policy by adding the required part(s)."""
-    check, policy = get_existing_policy(bucket_name, s3)
-    if check:
+    check, policy = get_existing_policy(bucket_name, s3client)
+    if check:   # I have a policy
         policy_json = json.loads(policy["Policy"])
-        checker = get_bucket_policy(bucket_name, s3)
-        if checker[1]:
-            new_policy = add_ssl_statement(bucket_name, policy_json)
-            update_policy(bucket_name, new_policy, s3)
-            return(True)
-    else:
+        new_policy = add_ssl_statement(bucket_name, policy_json)
+        update_policy(bucket_name, new_policy, s3client)
+        return(True)
+    else:   # I dont have a policy
         if policy == "No policy":
             new_policy = constuct_policy(bucket_name)
-            update_policy(bucket_name, new_policy, s3)
+            update_policy(bucket_name, new_policy, s3client)
             return(bucket_name, True)
         if "Error Getting policy" in policy:
             return(bucket_name, False)
 
 
-def update_policy(bucket_name, new_policy, s3):
+def update_policy(bucket_name, new_policy, s3client):
     """Update the Policy in AWS."""
     try:
-        s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(new_policy))
+        s3client.put_bucket_policy(Bucket=bucket_name,
+                                   Policy=json.dumps(new_policy))
         return(True)
     except ClientError:
         return(False)
