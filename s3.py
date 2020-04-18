@@ -54,8 +54,9 @@ def versioning(bucket, s3resource, logger, fix):
     versioning = get_bucket_versioning(bucket, s3resource, logger)
     logger.info(bucket + " versioning is " + versioning)
     if fix:
-        versioning = set_bucket_versioning(bucket, s3resource, logger)
-        logger.info(bucket + " versioning is now " + versioning)
+        if versioning != "Enabled":
+            versioning = set_bucket_versioning(bucket, s3resource, logger)
+            logger.info(bucket + " versioning is now " + versioning)
     return versioning
 
 
@@ -64,8 +65,9 @@ def encryption(bucket, s3client, logger, fix):
     enc = get_bucket_encryption(bucket, s3client, logger)
     logger.info(bucket + " encryption is " + enc)
     if fix:
-        enc = set_bucket_encryption(bucket, s3client, logger)
-        logger.info(bucket + " encryption is now " + enc)
+        if enc != "Encrypted":
+            enc = set_bucket_encryption(bucket, s3client, logger)
+            logger.info(bucket + " encryption is now " + enc)
     return enc
 
 
@@ -74,8 +76,9 @@ def policies(bucket, s3client, logger, fix):
     pol = get_bucket_policy(bucket, s3client)
     logger.info(bucket + " policy is " + pol[2])
     if fix:
-        pol = set_bucket_policy(bucket, s3client)
-        logger.info(bucket + " policy is now " + pol[2])
+        if pol[2] != "SSL secured":
+            pol = set_bucket_policy(bucket, s3client)
+            logger.info(bucket + " policy is now " + pol[2])
     return pol[2]
 
 
