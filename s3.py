@@ -49,7 +49,7 @@ def list_all_buckets(s3client):
     return list_to_return
 
 
-def versioning(bucket, s3resource, logger, fix, results_file):
+def versioning(bucket, s3resource, logger, fix):
     """Check and enable versioning."""
     versioning = get_bucket_versioning(bucket, s3resource, logger)
     logger.info(bucket + " versioning is " + versioning)
@@ -59,7 +59,7 @@ def versioning(bucket, s3resource, logger, fix, results_file):
     return versioning
 
 
-def encryption(bucket, s3client, logger, fix, results_file):
+def encryption(bucket, s3client, logger, fix):
     """Check and Enable Encryption."""
     enc = get_bucket_encryption(bucket, s3client, logger)
     logger.info(bucket + " encryption is " + enc)
@@ -69,12 +69,12 @@ def encryption(bucket, s3client, logger, fix, results_file):
     return enc
 
 
-def policies(bucket, s3client, logger, fix, results_file):
+def policies(bucket, s3client, logger, fix):
     """Check and Enable Encryption."""
     pol = get_bucket_policy(bucket, s3client)
     logger.info(bucket + " policy is " + pol[2])
     if fix:
-        pol = set_bucket_policy(bucket, s3client, logger)
+        pol = set_bucket_policy(bucket, s3client)
         logger.info(bucket + " policy is now " + pol[2])
     return pol[2]
 
@@ -91,10 +91,11 @@ def main():
 
     if bucket:
         if bucket in bucket_list:
-            ver = versioning(bucket, s3resource, logger, fix, results_file)
-            enc = encryption(bucket, s3client, logger, fix, results_file)
-            pol = policies(bucket, s3client, logger, fix, results_file)
-            results_file.write(bucket + "," + ver + "," + enc + "," + pol + "\n")
+            ver = versioning(bucket, s3resource, logger, fix)
+            enc = encryption(bucket, s3client, logger, fix)
+            pol = policies(bucket, s3client, logger, fix)
+            results_file.write(bucket + "," + ver +
+                               "," + enc + "," + pol + "\n")
         else:
             logger.error("Bucket Not Found: %s", bucket)
     else:
@@ -106,7 +107,8 @@ def main():
             enc = encryption(bucket, s3client, logger, fix, results_file)
             logger.info("%d of %d", counter, num_buckets)
             counter = counter + 1
-            results_file.write(bucket + "," + ver + "," + enc + "," + pol + "\n")
+            results_file.write(bucket + "," + ver +
+                               "," + enc + "," + pol + "\n")
     results_file.close()
 
 

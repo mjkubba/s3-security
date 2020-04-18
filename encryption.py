@@ -30,7 +30,6 @@ def get_bucket_encryption(bucket_name, s3, logger):
         encryption = s3.get_bucket_encryption(
           Bucket=str(bucket_name)
         )
-        print(encryption)
         return "Encrypted"
     except ClientError as e:
         if "ServerSideEncryptionConfigurationNotFoundError" in str(e):
