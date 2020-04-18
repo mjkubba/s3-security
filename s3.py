@@ -106,8 +106,9 @@ def main():
         counter = 1
         logger.info("Found: %d Buckets", num_buckets)
         for bucket in bucket_list:
-            ver = versioning(bucket, s3resource, logger, fix, results_file)
-            enc = encryption(bucket, s3client, logger, fix, results_file)
+            ver = versioning(bucket, s3resource, logger, fix)
+            enc = encryption(bucket, s3client, logger, fix)
+            pol = policies(bucket, s3client, logger, fix)
             logger.info("%d of %d", counter, num_buckets)
             counter = counter + 1
             results_file.write(bucket + "," + ver +
