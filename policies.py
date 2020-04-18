@@ -71,14 +71,14 @@ def set_bucket_policy(bucket_name, s3client):
         policy_json = json.loads(policy["Policy"])
         new_policy = add_ssl_statement(bucket_name, policy_json)
         update_policy(bucket_name, new_policy, s3client)
-        return(True)
+        return(bucket_name, True, "SSL secured")
     else:   # I dont have a policy
         if policy == "No policy":
             new_policy = constuct_policy(bucket_name)
             update_policy(bucket_name, new_policy, s3client)
-            return(bucket_name, True)
+            return(bucket_name, True, "SSL secured")
         if "Error Getting policy" in policy:
-            return(bucket_name, False)
+            return(bucket_name, False, "Not secured")
 
 
 def update_policy(bucket_name, new_policy, s3client):
